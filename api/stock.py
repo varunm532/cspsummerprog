@@ -4,7 +4,7 @@ from flask_restful import Api, Resource # used for REST API building
 from datetime import datetime
 from auth_middleware import token_required
 
-from model.users import User, StockUser,Transactions,Stocks
+from model.users import User, StockUser,Transactions,Stocks, User_Transaction_Stocks
 
 stock_api = Blueprint('stock_api', __name__,
                    url_prefix='/stock')
@@ -22,17 +22,22 @@ class StockAPI:
     class _transaction_buy(Resource):
         def post(self):
             body = request.get_json()
-            try:
-                quantity = body.get("quantity")
-                current_stock_price = Stocks.get_price(self,body)
-                value = quantity * current_stock_price
-                bal = StockUser.get_balance(self,body)
-                print(str(bal))
-                print(str(value))
-                u=Transactions.createlog_buy(self,body)
-                print(str(u))
-            except Exception as e:
-                return {"error": "no quantity in payload"},500
+            
+            quantity = body.get("quantity")
+            symbol = body.get("symbol")
+            uid = body.get("uid")
+            current_stock_price = Stocks.get_price(self,body)
+            value = quantity * current_stock_price
+            bal = StockUser.get_balance(self,body)
+            userid = StockUser.get_userid(self,uid)
+            stockid = Stocks.get_stockid(self,symbol)
+            u=Transactions.createlog_buy(self,body)
+            z= User_Transaction_Stocks.multilog_buy(self,body = body,value = value,transactionid=u)
+            print(str(z))
+            print("this is transactionid" + str(u))
+            print("this is user id" + str(userid))
+            print("this is stockid" + str(stockid))
+            
             
 
     class _transaction_sell(Resource):
