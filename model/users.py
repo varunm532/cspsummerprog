@@ -78,7 +78,13 @@ class Stocks(db.Model):
             self.quantity = quantity
         db.session.commit()
         return self
-
+    def get_price(self,body):
+        stock = body.get("symbol")
+        try:
+            return Stocks.query.filter(Stocks._symbol == stock).value(Stocks._sheesh)
+        except Exception as e:
+            return {"error": "No such stock exists"},500
+            
     def read(self):
         return {
             "id": self.stock_id,
@@ -315,7 +321,7 @@ class Transactions(db.Model):
         self._user_id = user_id
         self._transaction_type = transaction_type
         self._quantity = quantity
-        self._transaction_date = transaction_date
+        self._transaction_date = date.today()
 
     @property
     def user_id(self):
@@ -369,7 +375,22 @@ class Transactions(db.Model):
             "user_id": self.user_id,
             "transaction_type": self.transaction_type,
             "quantity": self.quantity,
+            "transaction_date": self._transaction_date
         }
+    def createlog_buy(self,body):
+        uid = body.get('uid')
+        quantity = body.get('quantity')
+        transactiontype = 'buy'
+        try:
+            user = StockUser.query.filter_by(_user_id = uid).first()
+            stock_user = Transactions(user_id=user.id, transaction_type=transactiontype, transaction_date=date.today(),quantity=quantity)
+            db.session.add(stock_user)
+            db.session.commit()
+        except Exception as e:
+            return {"error": "account has not been autocreated for stock game"},500
+            
+        
+        
 
 class User_Transaction_Stocks(db.Model):
     __tablename__ = 'user_transaction_stocks'
