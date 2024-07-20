@@ -13,7 +13,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 ''' Tutorial: https://www.sqlalchemy.org/library.html#tutorials, try to get into Python shell and follow along '''
 class Stocks(db.Model):
     __tablename__ = 'stocks'
-    stock_id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     _symbol = db.Column(db.String(255), unique=False, nullable=False)
     _company = db.Column(db.String(255), unique=False, nullable=False)
     _quantity = db.Column(db.Integer, unique=False, nullable=False)
@@ -99,7 +99,7 @@ class User(db.Model, UserMixin):
     _hashmap = db.Column(db.JSON, nullable=True)
     _role = db.Column(db.String(20), default="User", nullable=False)
 
-    stock_user = db.relationship("StockUser", backref=db.backref("user", cascade="all"), lazy=True)
+    stock_user = db.relationship("StockUser", backref=db.backref("users", cascade="all"), lazy=True,uselist=False)
 
     def __init__(self, name, uid, password="123qwerty", dob=date.today(), hashmap={}, role="User"):
         self._name = name
@@ -222,18 +222,31 @@ class User(db.Model, UserMixin):
         db.session.delete(self)
         db.session.commit()
         return None
+    def add_stockuser(self, uid):
+        user = User.query.filter_by(_uid=uid).first()
+        if user:
+            found = user.stock_user is not None
+            if not found:
+                stock_user = StockUser(user_id=user.uid, stockmoney=100000, accountdate=date.today())
+                db.session.add(stock_user)
+                db.session.commit()
+            else:
+                print(f"StockUser for user {uid} already exists.")
+        
+        
 class StockUser(db.Model):
     __tablename__ = 'stockuser'
-    account_id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     _user_id = db.Column(db.String(255), db.ForeignKey('users._uid', ondelete='CASCADE'), nullable=False)
     _stockmoney = db.Column(db.Integer, nullable=False)
     _accountdate = db.Column(db.Date)
 
     transactions = db.relationship('Transactions', lazy='subquery', backref=db.backref('stockuser', lazy=True))
-    #users = db.relationship("User", backref=db.backref("stockuser", single_parent=True), lazy=True)
+    #
+    # 
+    # users = db.relationship("User", backref=db.backref("stockuser", single_parent=True), lazy=True)
 
-    def __init__(self, account_id, user_id, stockmoney, accountdate):
-        self.account_id = account_id
+    def __init__(self, user_id, stockmoney, accountdate):
         self._user_id = user_id
         self._stockmoney = stockmoney
         self._accountdate = date.today()
@@ -279,7 +292,7 @@ class StockUser(db.Model):
 
     def read(self):
         return {
-            "account_id": self.account_id,
+            "id": self.id,
             "user_id": self.user_id,
             "stockmoney": self.stockmoney,
             "accountdate": self._accountdate,
@@ -289,8 +302,8 @@ class StockUser(db.Model):
 class Transactions(db.Model):
     __tablename__ = 'stock_transactions'
 
-    transaction_id = db.Column(db.Integer, primary_key=True)
-    _user_id = db.Column(db.Integer, db.ForeignKey('stockuser.account_id', ondelete='CASCADE'), nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+    _user_id = db.Column(db.Integer, db.ForeignKey('stockuser.id', ondelete='CASCADE'), nullable=False)
     _transaction_type = db.Column(db.String(255), nullable=False)
     _quantity = db.Column(db.Integer, nullable=False)
     _transaction_date = db.Column(db.Date, nullable=False)
@@ -360,9 +373,9 @@ class Transactions(db.Model):
 
 class User_Transaction_Stocks(db.Model):
     __tablename__ = 'user_transaction_stocks'
-    _user_id = db.Column(db.Integer, db.ForeignKey('stockuser.account_id'), primary_key=True, nullable=False)
-    _transaction_id = db.Column(db.Integer, db.ForeignKey('stock_transactions.transaction_id', ondelete='CASCADE'), primary_key=True, nullable=False)
-    _stock_id = db.Column(db.Integer, db.ForeignKey('stocks.stock_id', ondelete='CASCADE'), primary_key=True, nullable=False)
+    _user_id = db.Column(db.Integer, db.ForeignKey('stockuser.id'), primary_key=True, nullable=False)
+    _transaction_id = db.Column(db.Integer, db.ForeignKey('stock_transactions.id', ondelete='CASCADE'), primary_key=True, nullable=False)
+    _stock_id = db.Column(db.Integer, db.ForeignKey('stocks.id', ondelete='CASCADE'), primary_key=True, nullable=False)
     _quantity = db.Column(db.Integer, nullable=False)
     _price_per_stock = db.Column(db.Float, nullable=False)
     _transaction_time = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp())
