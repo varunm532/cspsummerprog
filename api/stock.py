@@ -25,8 +25,9 @@ class StockAPI:
             try:
                 quantity = body.get("quantity")
                 current_stock_price = Stocks.get_price(self,body)
-                print(str(current_stock_price))
                 value = quantity * current_stock_price
+                bal = StockUser.get_balance(self,body)
+                print(str(bal))
                 print(str(value))
                 u=Transactions.createlog_buy(self,body)
                 print(str(u))

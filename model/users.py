@@ -303,7 +303,12 @@ class StockUser(db.Model):
             "stockmoney": self.stockmoney,
             "accountdate": self._accountdate,
         }
-
+    def get_balance(self,body):
+        try:
+            uid = body.get("uid")
+            return StockUser.query.filter(StockUser._user_id == uid).value(StockUser._stockmoney)
+        except Exception as e:
+                return {"error": "Can't find user in StockUser table"},500
 
 class Transactions(db.Model):
     __tablename__ = 'stock_transactions'
